@@ -1,0 +1,67 @@
+---
+title: "Bootstrap Aggregation and Ensamble Models"
+author: "Fabrizio Fiorini"
+date: "10/25/2021"
+output: html_document
+---
+
+# Implementation in R
+
+## Setting up the problem and partitioning the data
+
+
+```{r}
+rm(list = ls())
+set.seed(10)
+y <- c(1:1000)
+x1 <- c(1:1000)*runif(1000, min=0, max=2)
+x2 <- c(1:1000)*runif(1000, min=0, max=2)
+x3 <- c(1:1000)*runif(1000, min=0, max=2)
+```
+
+```{r}
+all_data <- data.frame(y, x1, x2, x3)
+summary(all_data)
+```
+
+```{r}
+index <- sample(nrow(all_data), size = floor(nrow(all_data)*.75))
+head(index)
+training <- all_data[index, ]
+testing <- all_data[-index, ]
+str(training)
+str(testing)
+```
+
+
+## Creating the prediction model and bagging
+
+
+```{r}
+lm_fit <- lm(y ~ x1+x2+x3, data = training)
+summary(lm_fit)
+```
+
+
+```{r}
+predictions <- predict(lm_fit, newdata = testing)
+error <- sqrt((sum((testing$y-predictions)^2))/nrow(testing))
+print(error)
+```
+
+```{r}
+predictions_bagging <- NULL
+for (n in 1:1000){
+  sub_index = sample(nrow(training), round(nrow(training)*.66), replace = TRUE)
+  sub_model = lm(y ~ x1+x2+x3, data = training[sub_index, ])
+  predictions = predict(sub_model, testing)
+  predictions_bagging = cbind(predictions_bagging, predictions)
+}
+head(predictions_bagging[ , 1:5])
+```
+
+```{r}
+predictions_bagging_final = apply(predictions_bagging, 1, mean)
+error2 <- sqrt((sum((testing$y-predictions)^2))/nrow(testing))
+print(error2)
+```
